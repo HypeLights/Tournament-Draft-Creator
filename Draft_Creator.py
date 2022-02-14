@@ -19,6 +19,7 @@ layout = [
     [
         sg.Text("Find the location of the csv file:", size=(30, 1)),
         sg.FileBrowse("  Click here  ", key="-LOCATION-"),
+        
     ],
     [
         sg.Text("How many players will the teams have?", size=(30, 1)),
@@ -30,15 +31,18 @@ layout = [
     ],
     [
         sg.Text("Paste Discord ID column header", size=(30, 1)),
-        sg.InputText("", key="-INPUTIDS-"),
+        sg.InputText("What is your discord ID?", key="-INPUTIDS-"),
+        sg.Checkbox("Use discord ID column", key="-USEID-", default=True)
     ],
     [
         sg.Text("Paste name column header", size=(30, 1)),
-        sg.InputText("", key="-INPUTNAMES-"),
+        sg.InputText("What is your IGN?", key="-INPUTNAMES-"),
+        sg.Checkbox("Use name column", key="-USENAME-", default=True)
     ],
     [
         sg.Text("Paste skill level column header", size=(30, 1)),
-        sg.InputText("", key="-INPUTSKILL-"),
+        sg.InputText("On a scale from Beginner to advanced, how skilled are you?", key="-INPUTSKILL-"),
+        sg.Checkbox("Use Skill level column", key="-USESKILL-", default=True)
     ],
     [sg.Checkbox("Include name, and skill level", default=False, key="-All-")],
     [
@@ -63,6 +67,7 @@ try:
         elif event == "Clear Output":
             Window["-OUTPUT-"].Update("")
         elif event == "Calculate!":
+            person = Person.Person("423423423", "Bob", "1")
             error = 0
             location = values["-LOCATION-"]
             TeamSize = values["-TEAMS-"]
@@ -71,6 +76,10 @@ try:
             Skill = values["-INPUTSKILL-"]
             All = values["-All-"]
             Names = values["-INPUTNAMES-"]
+            USEID = values["-USEID-"]
+            USENAME = values["-USENAME-"]
+            USESKILL = values["-USESKILL-"]
+            
             # Handle if they leave something blank
             if location == "":
                 print("No location was entered!\n")
@@ -82,14 +91,17 @@ try:
                 print("No team count was entered!\n")
                 error += 1
             if InputIDS == "":
-                print("No discord ID colummn was entered!\n")
-                error += 1
+                if USEID:
+                   print("No discord ID colummn was entered!\n")
+                   error += 1
             if Skill == "":
-                print("No skill colummn was entered!\n")
-                error += 1
+                if USESKILL:
+                    print("No skill colummn was entered!\n")
+                    error += 1
             if Names == "":
-                print("No name colummn was entered!\n")
-                error += 1
+                if USENAME:
+                    print("No name colummn was entered!\n")
+                    error += 1
             if location != "":
                 if location.endswith(".csv"):
                     pass
@@ -103,25 +115,28 @@ try:
                 else:
                     print("Error found! Check the message above for details.\n")
             else:
-                location = values["-LOCATION-"]
-                TeamSize = values["-TEAMS-"]
-                TeamCount = values["-COUNT-"]
-                InputIDS = values["-INPUTIDS-"]
-                Skill = values["-INPUTSKILL-"]
-                All = values["-All-"]
-                Names = values["-INPUTNAMES-"]
-                people = []
-                outliers = []
-                num_line = 0
                 person = Person.Person("423423423", "Bob", "1")
 
                 # -------------- Actual Code --------------
                 location = str(location).replace("\\", "\\\\")
                 filename = open(location, "r")
+                filename.seek(0)
                 file = csv.DictReader(filename, delimiter=",")
                 for col in file:
                     num_line += 1
-                    person = Person.Person(col[InputIDS], col[Names], col[Skill])
+                    if USEID:
+                        colIDS = col[InputIDS]
+                    else:
+                        colIDS = " "
+                    if USENAME:
+                        colNames = col[Names]
+                    else:
+                        colNames = " "
+                    if USESKILL:
+                        colSkill = col[Skill]
+                    else:
+                        colSkill = " "
+                    person = Person.Person(colIDS, colNames, colSkill)
                     people.append(person)
                 players = int(TeamCount) * int(TeamSize)
                 outlierCount = int(num_line) - int(players)
@@ -130,7 +145,8 @@ try:
 
                 for i in range(0, outlierCount):
                     outliers.append(people.pop())
-                people.sort(key=operator.attrgetter("skill"))
+                if USESKILL:
+                    people.sort(key=operator.attrgetter("skill"))
 
                 li = [*range(0, 0), *range(int(TeamCount) - 1, -1, -1)]
                 it = cycle(li)
@@ -169,4 +185,4 @@ except Exception as e:
         e,
         tb,
     )
-    sg.popup_error(f"AN EXCEPTION OCCURRED!", e, tb)
+    sg.popup_error(f"AN EXCEPTION OCCURRED! An error happened. Ping HypeLights with a screenshot of this.  Here is the info:", e, tb)
